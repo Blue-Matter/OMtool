@@ -534,12 +534,22 @@ simCAA <- function(nsim, yrs, n_age, Cret, CAA_ESS, CAA_nsamp) {
   CAA <- array(NA, dim = c(nsim, yrs, n_age))  # Catch  at age array
 
   # a multinomial observation model for catch-at-age data
+  # logistic normal if CAA_ESS < 1
+  if(any(CAA_ESS < 1) && requireNamespace("mvtnorm", quietly = TRUE)) stop("mvtnorm is needed.")
   for (i in 1:nsim) {
     for (j in 1:yrs) {
       if (!sum(Cret[i, ,j])) {
         CAA[i, j, ] <- 0
       } else {
-        CAA[i, j, ] <- ceiling(-0.5 + rmultinom(1, CAA_ESS[i], Cret[i, ,j]) * CAA_nsamp[i]/CAA_ESS[i])
+        if(CAA_ESS[i] < 1) {
+          log_PAA <- log(Cret[i, , j]/sum(Cret[i, , j]))
+          vcov_PAA <- (CAA_ESS[i] * log_PAA)^2 * diag(length(log_PAA))
+          
+          samp_PAA <- mvtnorm::rmvnorm(1, log_PAA, vcov_PAA) %>% ilogitm()
+          CAA[i, j, ] <- ceiling(CAA_nsamp[i] * samp_PAA)
+        } else {
+          CAA[i, j, ] <- ceiling(-0.5 + rmultinom(1, CAA_ESS[i], Cret[i, ,j]) * CAA_nsamp[i]/CAA_ESS[i])
+        }
       }
     }
   }

@@ -38,6 +38,7 @@ Suggests:
     kableExtra,
     knitr,
     MASS,
+    mvtnorm,
     openxlsx,
     purrr,
     r4ss,
